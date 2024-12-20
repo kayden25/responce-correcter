@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            
+            display: flex;
+            flex-direction: column;
+        }
+        div{
+            width: max-content;
+            overflow: hidden;
+        }
+        #total{
+            height: fit-content;
+            width: 100%;
+
+        }
+        #subs{
+            /* width: 100%; */
+            display: flexbox;
+            flex-direction: column;
+        }
+        #phy,#che,#maths{
+            margin-right: 10%;
+            width: max-content;
+        }
+        #imp{
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/1.10.100/pdf.min.js" ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.entry.min.js" ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/1.10.100/pdf.worker.min.js" ></script>
+    <input type="file" id="file-id" name="file_name" onchange="ExtractText();">
+    <h1 id="ins">click on "Choose file" and upload JEE MAINS Official KEY sheet</h1>
+
+    <!-- a container for the output -->
+    <div id="output">
+
+    <div id="total"></div>
+
+    <div id="subs">
+        <div id="Physics"></div>
+        <div id="Mathematics"></div>
+        <div id="Chemistry"></div>
+    </div>
+</div>
+
+
+    <script>
+        let ansSize;
+               var datass = '';
+        var DataArr = [];
+        PDFJS.workerSrc = '';
+        var big="";
+        let uploads=0;
+
+        var sol={};
+        var umaths=0,uphy=0,uche=0; //unattempted in each subject +0
+        var cmaths=0,cphy=0,cche=0;  //correct in each subject +4
+        var nmaths=0,nphy=0,nche=0;  //negatives in each subject -1
+
+        function iskey(s){
+            for(var i=200;i<=210;i++){
+                if(s.substring(i,i+29)=="FINAL PROVISIONAL ANSWER KEYS") return true;
+            }
+            return false;
+        }
+
+        //Mathematics
+
+        function readSol(big2){
+            var math=false;  //to ignore dates,shift nums
+            var qcount=0;  //question count, reset after every 30 questions
+            for(var i=0;i<big2.length;i++){
+                if(big2.substring(i,i+11)=="Mathematics"){
+                    math=true;
+                    continue;
+                }
+                if(big2[i]=='('){
+                    while(big2[i]!=')') i++;
+                    i++;
+                    continue;
+                }
+                if(math && big2[i]>='0' && big2[i]<='9'){
+                    let j=i,j1,j2;
+                    while(big2[i]!=' '){
+                        i++;
+                    }
+                    j1=i;
+                    i++;
+                    while(big2[i]!=' ' && big2[i]!=','){
+                        i++;
+                    }
+                    j2=i;
+                    
+                    
+
+                    
+
+                    if(sol[big2.substring(j,j1)]==undefined){
+                        sol[big2.substring(j,j1)]=[big2.substring(j1+1,j2)];
+                    }
+                    else
+                    sol[big2.substring(j,j1)].push(big2.substring(j1+1,j2));
+                    qcount++;
+
+
+                    if(big2[i+1]=='o' && big2[i+2]=='r'){    //HANDLES or or or   maximum 3 ors
+                        i=i+4;
+                        let j6=i;
+                        while(big2[i]!=' ') i++;
+                        sol[big2.substring(j,j1)].push(big2.substring(j6,i));
+
+                        if(big2[i+1]=='o' && big2[i+2]=='r'){
+                            i=i+4;
+                            let j7=i;
+                            while(big2[i]!=' ') i++;
+                            sol[big2.substring(j,j1)].push(big2.substring(j7,i));
+                            if(big2[i+1]=='o' && big2[i+2]=='r'){
+                                i=i+4;
+                                let j8=i;
+                                while(big2[i]!=' ') i++;
+                                sol[big2.substring(j,j1)].push(big2.substring(j8,i));
+                            
+                            }
+                        }
+                        continue;
+                    }
+
+                    if(big2[i]==','){    // HANDLES , , ,  max 3 commas
+                        let j3=i+1;
+                        i+=2;
+                        while(big2[i]!=' '&& big2[i]!=','){
+                            i++;
+                        }
+                        sol[big2.substring(j,j1)].push(big2.substring(j3,i));
+                        if(big2[i]==','){
+                                let j4=i+1;
+                                i+=2;
+                                     while(big2[i]!=' '&& big2[i]!=','){
+                                        i++;
+                                    }
+                                sol[big2.substring(j,j1)].push(big2.substring(j4,i));
+                                if(big2[i]==','){
+                                        let j5=i+1;
+                                        i+=2;
+                                        while(big2[i]!=' '&& big2[i]!=','){
+                                            i++;
+                                        }
+                                        sol[big2.substring(j,j1)].push(big2.substring(j5,i));
+                                }
+                        }
+                }
+
+                    
+                    if(qcount==90){
+                        math=false;
+                        qcount=0;
+                    }
+
+                    console.log("mapping ",big2.substring(j,j1)," => ",);
+
+                    for(var k=0;k<sol[big2.substring(j,j1)].length;k++){
+                        console.log(sol[big2.substring(j,j1)][k],",");
+                    }
+                }
+
+               
+                
+            }
+            
+                     console.log(sol);
+                
+        }
+///////////////////////////////////////////////
+
+        function correct(qid,ans,qcount){
+
+            // did not consider questions from 31
+            //Given Answer : -- Question T ype : SA Question ID : 7155051464 Status : Not A nswer ed Q.23 Given Answer : -- Question T ype : SA Question ID : 7155051468 Status : Not A nswer ed Q.24 G
+            //THIS IS THE PROBLEM IT DID NOT CONSIDER 22nd Question in reality
+
+            console.log("qnum=",qcount," correcting qid=",qid,"given ans=",ans,"  correct ans=",sol[qid],"\n");
+
+            // console.log("maths\ncorrect=",cmaths,"\nnegs=",nmaths,"unattempted=",umaths);
+            //                 console.log("\n\nphysics\ncorrect=",cphy,"\nnegs=",nphy,"unattempted=",uphy);
+            //                 console.log("\n\nchemistry\ncorrect=",cche,"\nnegs=",nche,"unattempted=",uche);
+            if(qcount<=30){  //maths
+                if(ans=='--'){
+                    umaths++;
+                    return;
+                }
+                var i;
+                for(i=0;i<sol[qid].length;i++){
+                    if(ans==sol[qid][i]){
+                        cmaths++;
+                        return;
+                    }
+                }
+                if(i==sol[qid].length && qcount<=20) nmaths++;
+                
+            }
+            else if(qcount>30 && qcount<=60){
+                if(ans=='--'){
+                    uphy++;
+                    return;
+                }
+                var i;
+                for(i=0;i<sol[qid].length;i++){
+                    if(ans==sol[qid][i]){
+                        cphy++;
+                        return;
+                    }
+                }
+                if(i==sol[qid].length && qcount<=50) nphy++;
+            }
+            else{
+                if(ans=='--'){
+                    uche++;
+                    return;
+                }
+                var i;
+                for(i=0;i<sol[qid].length;i++){
+                    if(ans==sol[qid][i]){
+                        cche++;
+                        return;
+                    }
+                }
+                if(i==sol[qid].length && qcount<=80) nche++;
+            }
+
+        }
+
+        function readResponse(s){
+            var qcount=0;
+            for(var i=0;i<s.length;i++){
+                if((qcount<=20-1 || (qcount>30-1 && qcount<=50-1)||(qcount>60-1 && qcount<=80-1))){
+                    if( s.substring(i,i+5)=="ID : "){
+                        qcount++;
+                        
+                        //MCQ Question ID : 7155051452 Option 1 ID : 7155054367 Option 2 ID : 7155054365 Option 3 ID : 7155054366 Option 4 ID : 7155054368 Status : Answer ed Chosen Option : 3 Q.2 Options 1. 2. 3. 4. Question T yp
+                        i=i+5;
+                        var start=i;
+                        while(s[i]!=' '){
+                            i++;
+                        }
+                        let qid=s.substring(start,i);
+                        
+                            var Options=[];
+
+                            i=i+15;start=i;
+                            while(s[i]!=' ') i++;
+                            Options.push(s.substring(start,i));
+
+                            i=i+15;start=i;
+                            while(s[i]!=' ') i++;
+                            Options.push(s.substring(start,i));
+
+                            i=i+15;start=i;
+                            while(s[i]!=' ') i++;
+                            Options.push(s.substring(start,i));
+
+                            i=i+15;start=i;
+                            while(s[i]!=' ') i++;
+                            Options.push(s.substring(start,i));
+
+                            //console.log("reading qnum=",qcount," qid=",qid," options=",Options,"\n");
+
+                            //Option 4 ID : 7155054368 Status : Answer ed Chosen Option : 3
+                            //Option 4 ID : 7155054379 Status : Not A nswer ed Chosen Option : -- 
+                            i=i+36;
+                            if(s[i]>='1' && s[i]<='4'){
+                                let p=0;
+                                p=s[i]-'1';
+                                correct(qid,Options[p],qcount);
+                            }
+                            else{
+                                correct(qid,"--",qcount);
+                            }
+
+                    }
+
+                }
+
+                else if(s.substring(i,i+15)=="Given Answer : "){  //numerical question
+                    qcount++;
+                        //Given Answer : 
+                        i=i+15;
+                        let start=i;
+                        while(s[i]!=' ') i++;
+                        let ans=s.substring(start,i);
+                        //Given Answer : 6 Question T ype : SA Question ID : 7155051469
+
+                        i=i+35;
+                        start=i;
+                        while(s[i]!=' ') i++;
+                        let qid=s.substring(start,i);
+                        correct(qid,ans,qcount);
+
+
+                        if(qcount==90){
+                            console.log("maths\ncorrect=",cmaths,"\nnegs=",nmaths,"unattempted=",umaths);
+                            console.log("\n\nphysics\ncorrect=",cphy,"\nnegs=",nphy,"unattempted=",uphy);
+                            console.log("\n\nchemistry\ncorrect=",cche,"\nnegs=",nche,"unattempted=",uche);
+
+
+                            let totalMarks=4*(cmaths+cphy+cche)-(nmaths+nphy+nche);
+                            let totalAttempts=90-(umaths+uphy+uche);
+                            let totalPositive=4*(cmaths+cche+cphy);
+                            let totalNegs=nmaths+nphy+nche;
+                            
+
+                            document.getElementById("output").innerHTML=`
+                                    <div id="output">
+                                        <div id="total">
+                                        <h1 id="imp">Total Marks : `+totalMarks+` /300</h1>
+                                        <h2>Total no. of Questions Attempted : `+totalAttempts+`</h2>
+                                        <h2>Total Positive marks :`+totalPositive+`</h2>
+                                        <h2>Total Negative marks :`+totalNegs+`</h2>
+                                    </div> 
+                                <div id="subs">
+                                    <div id="phy">
+                                    <h1>Physics</h1>
+                                    <h4>No. of Questions Attempted : `+(30-uphy)+`/25</h4>
+                                    <h4>Positive Marks : `+(4*cphy)+`</h4>
+                                    <h4>No. of Negatives : `+nphy+`</h4>
+                                    <h4>Marks : `+(4*cphy-nphy)+`</h4>
+
+                                </div>
+
+                                <div id="maths">
+                                    <h1>Mathematics</h1>
+                                    <h4>No. of Questions Attempted : `+(30-umaths)+`/25</h4>
+                                    <h4>Positive Marks : `+(4*cmaths)+`</h4>
+                                    <h4>No. of Negatives : `+nmaths+`</h4>
+                                    <h4>Marks : `+(4*cmaths-nmaths)+`</h4>
+                                </div> 
+
+
+                                <div id="che">
+                                    <h1>Chemistry</h1>
+                                    <h4>No. of Questions Attempted : `+(30-uche)+`/25</h4>
+                                    <h4>Positive Marks : `+(4*cche)+`</h4>
+                                    <h4>No. of Negatives : `+nche+`</h4>
+                                    <h4>Marks : `+(4*cche-nche)+`</h4>
+                                </div> 
+                                </div>
+                                </div>
+                            `
+                        }
+
+                    }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+        function ExtractText() {
+            uploads++;
+            if(uploads>2)alert("too many file uploads! reload the page to proceed.");
+            if(uploads==2) document.getElementById("ins").innerText="click on "+'"'+"Choose file"+'"'+" and upload Official key sheet";
+            var input = document.getElementById("file-id");
+            var fReader = new FileReader();
+            fReader.readAsDataURL(input.files[0]);
+            // console.log(input.files[0]);
+            fReader.onloadend = function (event) {
+                convertDataURIToBinary(event.target.result);
+            }
+        }
+
+        var BASE64_MARKER = ';base64,';
+
+        function convertDataURIToBinary(dataURI) {
+
+            var base64Index = dataURI.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
+            var base64 = dataURI.substring(base64Index);
+            var raw = window.atob(base64);
+            var rawLength = raw.length;
+            var array = new Uint8Array(new ArrayBuffer(rawLength));
+
+            for (var i = 0; i < rawLength; i++) {
+                array[i] = raw.charCodeAt(i);
+            }
+            pdfAsArray(array)
+
+        }
+
+        function getPageText(pageNum, PDFDocumentInstance,pageLimit) {
+            // Return a Promise that is solved once the text of the page is retrieven
+            return new Promise(function (resolve, reject) {
+                PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
+                    // The main trick to obtain the text of the PDF page, use the getTextContent method
+                    pdfPage.getTextContent().then(function (textContent) {
+                        var textItems = textContent.items;
+                        var finalString = "";
+
+                        // Concatenate the string of the item to the final string
+                        for (var i = 0; i < textItems.length; i++) {
+                            var item = textItems[i];
+
+                            finalString += item.str + " ";
+                        }
+
+                        big=big+finalString;
+                        if(pageNum==pageLimit && uploads==1){
+                            document.getElementById("ins").innerText="click on "+'"'+"Choose file"+'"'+" and upload your RESPONSE sheet"
+                            ansSize=big.length;
+                             console.log("big string = ",big);
+                            console.log("/////////////////////////////////");
+                            if(iskey(big))
+                              readSol(big);
+                        }
+                        if(pageNum==pageLimit && uploads==2){
+                            readResponse(big.substring(ansSize+1));
+                        }
+
+                        
+
+                        // Solve promise with the text retrieven from the page
+                        resolve(finalString);
+                    });
+                });
+            });
+        }
+
+        function pdfAsArray(pdfAsArray) {
+
+            PDFJS.getDocument(pdfAsArray).then(function (pdf) {
+
+                var pdfDocument = pdf;
+                // Create an array that will contain our promises
+                var pagesPromises = [];
+
+                for (var i = 0; i < pdf.pdfInfo.numPages; i++) {
+                    // Required to prevent that i is always the total of pages
+                    (function (pageNumber) {
+                        // Store the promise of getPageText that returns the text of a page
+                        pagesPromises.push(getPageText(pageNumber, pdfDocument,pdf.pdfInfo.numPages));
+                    })(i + 1);
+                }
+
+                // Execute all the promises
+                Promise.all(pagesPromises).then(function (pagesText) {
+                }
+                
+                );
+
+            }, function (reason) {
+                // PDF loading error
+                console.error(reason);
+            });
+        }
+    </script>
+</body>
+</html>
